@@ -2,11 +2,13 @@ import { useMemo, useState } from 'react';
 import { useLookups } from '../api/data';
 import type { Task } from '../api/types';
 import ObjectiveRow from '../components/ObjectiveRow';
+import QuestItemsView from '../components/QuestItemsView';
 import { isTaskAvailable, isTaskForFaction, objectiveIsOnMap, objectiveTargets, type Lookups } from '../lib/mapFeatures';
 import { showOnMap } from '../lib/nav';
 import { toggleTask, useProgress, type Progress } from '../lib/progress';
 import { requiredItems } from '../lib/questItems';
 import { useSettings } from '../lib/settings';
+import { createStore, useStore } from '../lib/store';
 import type { GamePoint } from '../lib/projection';
 
 /** Every map a task has markers on, with the points to jump to. */
@@ -17,6 +19,9 @@ function taskMapPoints(task: Task): Map<string, GamePoint[]> {
   }
   return out;
 }
+
+/** The quest list, or every item the unfinished quests need. */
+const viewStore = createStore<'quests' | 'items'>('tarkovz.questsView.v1', 'quests');
 
 /** Long map lists ("Woods, Customs, Shoreline, …") are cut to this many names. */
 const MAX_MAP_NAMES = 2;
@@ -34,6 +39,7 @@ export default function QuestsScreen() {
   const [atMyLevel, setAtMyLevel] = useState(true);
   const [kappaOnly, setKappaOnly] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const view = useStore(viewStore);
 
   const all = tasks.data?.data.tasks ?? [];
   const traderIds = useMemo(() => [...new Set(all.map((t) => t.trader))], [all]);
@@ -53,65 +59,84 @@ export default function QuestsScreen() {
 
   return (
     <div className="screen">
-      <div className="filters">
-        <input type="search" placeholder="Search quests" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <select value={trader} onChange={(e) => setTrader(e.target.value)} aria-label="Trader">
-          <option value="">All traders</option>
-          {traderIds
-            .map((id) => ({ id, name: lookups.traders.get(id)?.name ?? id }))
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-        </select>
-        <select value={mapId} onChange={(e) => setMapId(e.target.value)} aria-label="Map">
-          <option value="">All maps</option>
-          {(maps.data?.data ?? []).map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
-        <div className="chips">
-          <button type="button" className={`chip${atMyLevel ? ' on' : ''}`} onClick={() => setAtMyLevel((v) => !v)} title={`Prerequisites done and level ${settings.playerLevel} or below (set your level in Settings)`}>
-            Available now
-          </button>
-          <button type="button" className={`chip${kappaOnly ? ' on' : ''}`} onClick={() => setKappaOnly((v) => !v)}>
-            Kappa
-          </button>
-          <button type="button" className={`chip${hideCompleted ? ' on' : ''}`} onClick={() => setHideCompleted((v) => !v)}>
-            Hide done
-          </button>
-        </div>
+      <div className="segmented view-tabs" role="tablist" aria-label="View">
+        <button type="button" role="tab" aria-selected={view === 'quests'} className={view === 'quests' ? 'active' : ''} onClick={() => viewStore.set('quests')}>
+          Quests
+        </button>
+        <button type="button" role="tab" aria-selected={view === 'items'} className={view === 'items' ? 'active' : ''} onClick={() => viewStore.set('items')}>
+          Items needed
+        </button>
       </div>
 
-      {tasks.isPending && <p className="note">Loading quests…</p>}
-      {tasks.error && !tasks.data && <p className="note error">Couldn't load quests. ({tasks.error.message})</p>}
-      {tasks.data && (
-        <div className="progress-line">
-          <div className="progress-bar">
-            <span style={{ width: `${(doneCount / Math.max(1, all.length)) * 100}%` }} />
+      {view === 'items' ? (
+        tasks.data ? (
+          <QuestItemsView tasks={all} progress={progress} items={lookups.items} />
+        ) : (
+          <p className="note">Loading quests…</p>
+        )
+      ) : (
+        <>
+          <div className="filters">
+            <input type="search" placeholder="Search quests" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <select value={trader} onChange={(e) => setTrader(e.target.value)} aria-label="Trader">
+              <option value="">All traders</option>
+              {traderIds
+                .map((id) => ({ id, name: lookups.traders.get(id)?.name ?? id }))
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+            </select>
+            <select value={mapId} onChange={(e) => setMapId(e.target.value)} aria-label="Map">
+              <option value="">All maps</option>
+              {(maps.data?.data ?? []).map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+            <div className="chips">
+              <button type="button" className={`chip${atMyLevel ? ' on' : ''}`} onClick={() => setAtMyLevel((v) => !v)} title={`Prerequisites done and level ${settings.playerLevel} or below (set your level in Settings)`}>
+                Available now
+              </button>
+              <button type="button" className={`chip${kappaOnly ? ' on' : ''}`} onClick={() => setKappaOnly((v) => !v)}>
+                Kappa
+              </button>
+              <button type="button" className={`chip${hideCompleted ? ' on' : ''}`} onClick={() => setHideCompleted((v) => !v)}>
+                Hide done
+              </button>
+            </div>
           </div>
-          <span className="muted small">
-            {doneCount} of {all.length} done · {filtered.length} shown
-          </span>
-        </div>
-      )}
 
-      <ul className="task-list">
-        {filtered.map((task) => (
-          <TaskRow
-            key={task.id}
-            task={task}
-            progress={progress}
-            lookups={lookups}
-            expanded={expanded === task.id}
-            onToggleExpand={() => setExpanded((id) => (id === task.id ? null : task.id))}
-          />
-        ))}
-      </ul>
+          {tasks.isPending && <p className="note">Loading quests…</p>}
+          {tasks.error && !tasks.data && <p className="note error">Couldn't load quests. ({tasks.error.message})</p>}
+          {tasks.data && (
+            <div className="progress-line">
+              <div className="progress-bar">
+                <span style={{ width: `${(doneCount / Math.max(1, all.length)) * 100}%` }} />
+              </div>
+              <span className="muted small">
+                {doneCount} of {all.length} done · {filtered.length} shown
+              </span>
+            </div>
+          )}
+
+          <ul className="task-list">
+            {filtered.map((task) => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                progress={progress}
+                lookups={lookups}
+                expanded={expanded === task.id}
+                onToggleExpand={() => setExpanded((id) => (id === task.id ? null : task.id))}
+              />
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

@@ -351,6 +351,23 @@ input[type='search'] { min-width: 0; }
 button.mini { padding: 0 6px; font-size: 0.9rem; line-height: 1.4; }
 
 /* Quests screen */
+.view-tabs { margin-bottom: 10px; }
+.view-tabs button { padding: 5px 16px; }
+.need-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.need-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.need-list li.done { opacity: 0.45; }
+.need-main { flex: 1; min-width: 0; }
+.need-name { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.need-main .locked { color: #8a8f99; }
+.counter { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.counter input { width: 64px; padding: 2px 6px; text-align: right; font-variant-numeric: tabular-nums; }
+.counter span { min-width: 52px; font-variant-numeric: tabular-nums; }
 .task-list { list-style: none; margin: 0; padding: 0; }
 .task { border-bottom: 1px solid var(--border); padding: 6px 0; }
 .task.done .task-name { color: var(--muted); text-decoration: line-through; }

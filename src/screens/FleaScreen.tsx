@@ -4,13 +4,11 @@ import type { Item, ItemsFeed, Trader } from '../api/types';
 import { useHideoutLevels } from '../lib/hideout';
 import { buildNeedsIndex, totalNeeded, type ItemNeed } from '../lib/needs';
 import { useProgress } from '../lib/progress';
+import { CURRENCY_IDS } from '../lib/questNeeds';
 import { bestTraderSell, canSellOnFlea, fleaFee, formatRub } from '../lib/pricing';
 import { useSettings } from '../lib/settings';
 import { toggleFavorite, useFavorites } from '../lib/userData';
 import { formatAge } from '../lib/time';
-
-/** Roubles, dollars and euros: every quest "needs" them, so they'd swamp the keep list. */
-const CURRENCIES = new Set(['5449016a4bdc2d6f028b456f', '5696686a4bdc2da3298b456a', '569668774bdc2da2298b4568']);
 
 export default function FleaScreen() {
   const settings = useSettings();
@@ -46,7 +44,7 @@ export default function FleaScreen() {
         .map(([id, list]) => ({ item: lookups.items.get(id), total: totalNeeded(list).total }))
         .filter(
           (n): n is { item: Item; total: number } =>
-            !!n.item && !CURRENCIES.has(n.item.id) && !favorites.includes(n.item.id),
+            !!n.item && !CURRENCY_IDS.has(n.item.id) && !favorites.includes(n.item.id),
         )
         .sort((a, b) => b.total - a.total || a.item.name.localeCompare(b.item.name))
         .slice(0, 100),
