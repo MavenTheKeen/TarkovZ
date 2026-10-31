@@ -1,0 +1,67 @@
+{
+  "name": "tarkovz",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Second-screen companion app for Escape from Tarkov",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 node scripts/electron.mjs\"",
+    "build": "tsc --noEmit && vite build",
+    "start": "node scripts/electron.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "dist": "npm run build && electron-builder --win nsis portable",
+    "dist:portable": "npm run build && electron-builder --win portable"
+  },
+  "devDependencies": {
+    "@tanstack/react-query": "^5.105.0",
+    "@types/react": "18.3",
+    "@types/react-dom": "18.3",
+    "@vitejs/plugin-react": "4.3",
+    "concurrently": "^9.2.5",
+    "cross-env": "^7.0.3",
+    "electron": "44.10.0",
+    "electron-builder": "^25.1.8",
+    "jsonpath-plus": "^10.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "5.6",
+    "vite": "5.4",
+    "vitest": "^2.1.9",
+    "wait-on": "^8.0.5"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true,
+    "electron@44.10.0": true
+  },
+  "author": "TarkovZ",
+  "build": {
+    "appId": "app.tarkovz.companion",
+    "productName": "TarkovZ",
+    "files": [
+      "dist/**",
+      "electron/**",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "TarkovZ",
+      "artifactName": "TarkovZ-Setup-${version}.exe"
+    },
+    "portable": {
+      "artifactName": "TarkovZ-${version}-portable.exe"
+    }
+  }
+}
